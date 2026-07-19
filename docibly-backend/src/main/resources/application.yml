@@ -26,12 +26,6 @@ app:
       refresh-token-expiration: 604800000 # 7 days in milliseconds
       remember-me-token-expiration: 2592000000 # 30 days in milliseconds
     disposable-email: 10minutemail,20minutemail,33mail,5ymail,anonbox,guerrillamail,mailinator,maildrop,mailnesia,moakt,my10minutemail,throwawaymail,trashmail,temp-mail,tempmail,truemail,yopmail
-    oauth:
-      google:
-        enabled: ${GOOGLE_AUTH_ENABLED:true}
-        client-id: ${GOOGLE_CLIENT_ID:}
-        auto-create-user: ${GOOGLE_AUTO_CREATE_USER:true}
-        default-role: ${GOOGLE_DEFAULT_ROLE:ROLE_USER}
   server:
     url: ${SERVER_URL:http://localhost:8080}
   rate-limit:

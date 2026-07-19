@@ -29,10 +29,6 @@ public enum ErrorCode {
     UNKNOWN_ERROR("UNKNOWN_ERROR", "An unexpected error occurred", INTERNAL_SERVER_ERROR),
     USERNAME_NOT_FOUND("USERNAME_NOT_FOUND", "Cannot find user with the provided username", NOT_FOUND),
 
-    GOOGLE_AUTH_DISABLED("GOOGLE_AUTH_DISABLED", "Google authentication is currently disabled", FORBIDDEN),
-    GOOGLE_TOKEN_INVALID("GOOGLE_TOKEN_INVALID", "The provided Google ID token is invalid or has expired", UNAUTHORIZED),
-    GOOGLE_AUTH_EMAIL_MISSING("GOOGLE_AUTH_EMAIL_MISSING", "Google account does not expose an email address", BAD_REQUEST),
-
     STORAGE_FILE_EMPTY("STORAGE_FILE_EMPTY", "The uploaded file is empty", BAD_REQUEST),
     STORAGE_FILE_TOO_LARGE("STORAGE_FILE_TOO_LARGE", "The uploaded file exceeds the maximum allowed size", BAD_REQUEST),
     STORAGE_CONTENT_TYPE_NOT_ALLOWED("STORAGE_CONTENT_TYPE_NOT_ALLOWED", "The file content type is not permitted", BAD_REQUEST),

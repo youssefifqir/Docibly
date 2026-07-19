@@ -4,9 +4,6 @@ import com.docibly.dms.bean.core.role.Role;
 import com.docibly.dms.bean.core.user.User;
 import com.docibly.dms.config.security.TokenDenylist;
 import com.docibly.dms.service.facade.email.PasswordResetService;
-import com.docibly.dms.bean.core.user.AuthProvider;
-import com.docibly.dms.config.security.GoogleTokenVerifier;
-import com.docibly.dms.config.security.GoogleTokenVerifier.GoogleUserInfo;
 import com.docibly.dms.exception.BusinessException;
 import com.docibly.dms.dao.facade.security.RoleDao;
 import com.docibly.dms.dao.facade.security.UserDao;
@@ -17,7 +14,6 @@ import com.docibly.dms.ws.dto.auth.AuthenticationRequest;
 import com.docibly.dms.ws.dto.auth.RefreshRequest;
 import com.docibly.dms.ws.dto.auth.RegistrationRequest;
 import com.docibly.dms.ws.dto.auth.AuthenticationResponse;
-import com.docibly.dms.ws.dto.auth.GoogleAuthRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,13 +23,11 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static com.docibly.dms.exception.ErrorCode.*;
 
@@ -47,16 +41,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserDao userDao;
     private final RoleDao roleDao;
     private final UserConverter userConverter;
-    private final PasswordEncoder passwordEncoder;
     private final TokenDenylist tokenDenylist;
     private final PasswordResetService passwordResetService;
-    private final GoogleTokenVerifier googleTokenVerifier;
-
-    @Value("${app.security.oauth.google.auto-create-user:true}")
-    private boolean autoCreateUser;
-
-    @Value("${app.security.oauth.google.default-role:ROLE_USER}")
-    private String googleDefaultRole;
 
     @Value("${app.security.jwt.remember-me-token-expiration:2592000000}")
     private long rememberMeTokenExpiration;
@@ -163,52 +149,5 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             cause = cause.getCause();
         }
         return null;
-    }
-
-    @Override
-    @Transactional(timeout = 30)
-    public AuthenticationResponse googleSignIn(final GoogleAuthRequest request) {
-        final GoogleUserInfo googleUser = this.googleTokenVerifier.verify(request.getIdToken());
-
-        final User user = this.userDao.findByEmail(googleUser.email())
-                .orElseGet(() -> provisionGoogleUser(googleUser));
-
-        final String accessToken = this.jwtService.generateAccessToken(user.getUsername());
-        final String refreshToken = this.jwtService.generateRefreshToken(user.getUsername());
-        return AuthenticationResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .build();
-    }
-
-    private User provisionGoogleUser(final GoogleUserInfo googleUser) {
-        if (!this.autoCreateUser) {
-            throw new BusinessException(USER_NOT_FOUND);
-        }
-        final Role defaultRole = this.roleDao.findByName(this.googleDefaultRole)
-                .orElseGet(() -> this.roleDao.findAll().stream()
-                        .findFirst()
-                        .orElseThrow(() -> new EntityNotFoundException("No roles configured in the system")));
-
-        final User user = User.builder()
-                .firstName(googleUser.firstName().isBlank() ? googleUser.email().split("@")[0] : googleUser.firstName())
-                .lastName(googleUser.lastName().isBlank() ? "" : googleUser.lastName())
-                .email(googleUser.email())
-                .password(this.passwordEncoder.encode(UUID.randomUUID().toString()))
-                .enabled(true)
-                .locked(false)
-                .credentialsExpired(false)
-                .emailVerified(googleUser.emailVerified())
-                .authProvider(AuthProvider.GOOGLE)
-                .providerSubject(googleUser.sub())
-                .build();
-
-        final List<Role> roles = new ArrayList<>();
-        roles.add(defaultRole);
-        user.setRoles(roles);
-
-        log.debug("Auto-provisioning Google user {}", googleUser.email());
-        return this.userDao.save(user);
     }
 }

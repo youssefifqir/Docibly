@@ -20,7 +20,6 @@
         <openapi.version>2.7.0</openapi.version>
         <flyway.version>10.21.0</flyway.version>
         <resilience4j.version>2.2.0</resilience4j.version>
-        <google-api-client.version>2.7.0</google-api-client.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <minio.version>8.5.14</minio.version>
     </properties>
@@ -144,13 +143,6 @@
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>
             <version>4.0.0</version>
-        </dependency>
-
-        <!-- Google ID Token Verification -->
-        <dependency>
-            <groupId>com.google.api-client</groupId>
-            <artifactId>google-api-client</artifactId>
-            <version>${google-api-client.version}</version>
         </dependency>
 
         <!-- Email (Resend via SMTP) -->

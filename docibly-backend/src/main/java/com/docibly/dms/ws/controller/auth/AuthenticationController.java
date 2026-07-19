@@ -5,7 +5,6 @@ import com.docibly.dms.ws.dto.auth.AuthenticationRequest;
 import com.docibly.dms.ws.dto.auth.RefreshRequest;
 import com.docibly.dms.ws.dto.auth.RegistrationRequest;
 import com.docibly.dms.ws.dto.auth.AuthenticationResponse;
-import com.docibly.dms.ws.dto.auth.GoogleAuthRequest;
 import com.docibly.dms.service.facade.email.PasswordResetService;
 import com.docibly.dms.ws.dto.auth.ForgotPasswordRequest;
 import com.docibly.dms.ws.dto.auth.ResetPasswordRequest;
@@ -54,12 +53,6 @@ public class AuthenticationController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) final String authHeader) {
         this.authenticationService.logout(authHeader);
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/google")
-    @Operation(summary = "Authenticate via Google ID token and return JWT tokens")
-    public ResponseEntity<AuthenticationResponse> googleSignIn(@Valid @RequestBody final GoogleAuthRequest request) {
-        return ResponseEntity.ok(this.authenticationService.googleSignIn(request));
     }
 
     @PostMapping("/forgot-password")
