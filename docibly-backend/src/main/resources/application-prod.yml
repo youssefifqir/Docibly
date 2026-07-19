@@ -55,6 +55,15 @@ spring:
       mail.smtp.starttls.required: true
       mail.smtp.ssl.trust: ${SMTP_HOST:smtp-relay.brevo.com}
 
+# Swagger/OpenAPI doc generation scans every controller via reflection at boot and
+# keeps the generated model resident — real cost for a deployed demo API nobody
+# browses docs on.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 # Tomcat's default max-threads is 200 — each carries its own stack allocation.
 # A single small free-tier instance will never see 200 concurrent requests;
 # trimming this cuts worst-case thread-stack memory substantially.

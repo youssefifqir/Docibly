@@ -32,7 +32,9 @@ USER appuser
 
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
+  "-XX:MaxRAMPercentage=50.0", \
+  "-XX:MaxMetaspaceSize=160m", \
+  "-Xss512k", \
   "-XX:+UseSerialGC", \
   "-XX:+ExitOnOutOfMemoryError", \
   "-Djava.security.egd=file:/dev/./urandom", \
