@@ -7,8 +7,12 @@ spring:
     driver-class-name: org.postgresql.Driver
 
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      # Sized for a small serverless Postgres (Neon free tier) on a memory-constrained
+      # Railway container, not a dedicated server — 20 connections was wasteful and a
+      # real contributor to the OOM (each pooled connection carries real memory on both
+      # the JVM and Neon compute sides). Small pool, allocated on demand.
+      maximum-pool-size: 5
+      minimum-idle: 1
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 20000
@@ -50,6 +54,16 @@ spring:
       mail.smtp.starttls.enable: true
       mail.smtp.starttls.required: true
       mail.smtp.ssl.trust: ${SMTP_HOST:smtp-relay.brevo.com}
+
+# Tomcat's default max-threads is 200 — each carries its own stack allocation.
+# A single small free-tier instance will never see 200 concurrent requests;
+# trimming this cuts worst-case thread-stack memory substantially.
+server:
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 4
+
 logging:
   level:
     root: WARN
