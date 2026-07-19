@@ -1,0 +1,37 @@
+package com.docibly.dms.ws.dto.searchindex.admin.request;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import com.docibly.dms.bean.core.enums.DocumentVisibility;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateSearchIndexRequest {
+
+    @NotNull(message = "documentId is required")
+    @Min(value = 0, message = "documentId must be positive")
+    private Long documentId;
+    @Size(max = 500, message = "documentTitle must not exceed 500 characters")
+    private String documentTitle;
+    @Size(max = 500, message = "fullText must not exceed 500 characters")
+    private String fullText;
+    @Size(max = 500, message = "ocrText must not exceed 500 characters")
+    private String ocrText;
+    @Size(max = 500, message = "tags must not exceed 500 characters")
+    private String tags;
+    @Size(max = 500, message = "mimeType must not exceed 500 characters")
+    private String mimeType;
+    @Min(value = 0, message = "organizationId must be positive")
+    private Long organizationId;
+    @Size(max = 500, message = "ownerId must not exceed 500 characters")
+    private String ownerId;
+    private DocumentVisibility visibility;
+    private LocalDateTime indexedAt;
+}

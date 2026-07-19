@@ -1,0 +1,64 @@
+# Development Profile Configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/Docibly_dev
+    username: Docibly_user
+    password: ${DB_PASSWORD:dev123}
+    driver-class-name: org.postgresql.Driver
+
+    # Connection Pool
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+
+  # JPA
+  jpa:
+    hibernate:
+      # update: Hibernate syncs schema changes automatically in dev
+      ddl-auto: update
+    show-sql: true
+    open-in-view: true
+
+  # Flyway
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: false  # Allow schema changes during development
+    clean-disabled: false      # Allow clean in dev for easy resets
+
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1026}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.ssl.trust: ${SMTP_SSL_TRUST:}
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 5s
+    socket-timeout: 60s
+
+app:
+  admin:
+    password: ${ADMIN_PASSWORD:}
+  rate-limit:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.docibly.dms: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+

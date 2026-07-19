@@ -1,0 +1,117 @@
+package com.docibly.dms.ws.controller.folder;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Set;
+
+import com.docibly.dms.bean.core.folder.Folder;
+import com.docibly.dms.bean.core.organization.Organization;
+import com.docibly.dms.dao.criteria.core.folder.FolderCriteria;
+import com.docibly.dms.service.facade.folder.FolderService;
+import com.docibly.dms.ws.converter.folder.FolderConverter;
+import com.docibly.dms.ws.dto.PageResponse;
+import com.docibly.dms.ws.dto.folder.request.CreateFolderRequest;
+import com.docibly.dms.ws.dto.folder.request.UpdateFolderRequest;
+import com.docibly.dms.ws.dto.folder.response.FolderResponse;
+
+@RestController
+@RequestMapping("/api/v1/folders")
+@PreAuthorize("hasAnyRole('USER')")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Folder", description = "Folder management API")
+public class FolderRestAdmin {
+
+    private static final Set<String> ALLOWED_SORT_COLUMNS = Set.of(
+        "id", "ref", "createdDate", "lastModifiedDate", "name", "description", "color", "iconName", "isShared", "documentCount", "totalSizeBytes"
+    );
+
+    private final FolderService service;
+    private final FolderConverter converter;
+
+    public FolderRestAdmin(FolderService service, FolderConverter converter) {
+        this.service = service;
+        this.converter = converter;
+    }
+
+    @GetMapping
+    @Operation(summary = "List Folder records (paginated)")
+    public ResponseEntity<PageResponse<FolderResponse>> findAll(
+            @RequestHeader("X-Org-Id") Long orgId,
+            @RequestParam(defaultValue = "0") final int page,
+            @RequestParam(defaultValue = "20") @Max(200) final int size,
+            @RequestParam(defaultValue = "createdDate") final String sortBy,
+            @RequestParam(defaultValue = "desc") final String sortDir) {
+        if (!ALLOWED_SORT_COLUMNS.contains(sortBy)) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        if (!"asc".equalsIgnoreCase(sortDir) && !"desc".equalsIgnoreCase(sortDir)) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        final int effectiveSize = Math.min(size, 200);
+        final var pageable = PageRequest.of(page, effectiveSize,
+                "asc".equalsIgnoreCase(sortDir) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
+        final var criteria = new FolderCriteria();
+        criteria.setOrganizationId(orgId);
+        final var result = service.findPaginatedByCriteria(criteria, pageable)
+                .map(converter::toResponse);
+        return ResponseEntity.ok(PageResponse.from(result));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FolderResponse> findById(@RequestHeader("X-Org-Id") Long orgId, @PathVariable Long id) {
+        Folder entity = requireInOrg(id, orgId);
+        return ResponseEntity.ok(converter.toResponse(entity));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create a new Folder")
+    public ResponseEntity<FolderResponse> create(@RequestHeader("X-Org-Id") Long orgId, @Valid @RequestBody CreateFolderRequest request) {
+        Folder entity = converter.toEntity(request);
+        Organization orgRef = new Organization();
+        orgRef.setId(orgId);
+        entity.setOrganization(orgRef);
+        Folder created = service.create(entity);
+        return ResponseEntity.status(HttpStatus.CREATED).body(converter.toResponse(created));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update an existing Folder")
+    public ResponseEntity<FolderResponse> update(@RequestHeader("X-Org-Id") Long orgId, @PathVariable Long id, @Valid @RequestBody UpdateFolderRequest request) {
+        requireInOrg(id, orgId);
+        Folder entity = converter.toEntity(request);
+        entity.setId(id);
+        Folder updated = service.update(entity);
+        if (updated == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(converter.toResponse(updated));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a Folder")
+    public ResponseEntity<Void> deleteById(@RequestHeader("X-Org-Id") Long orgId, @PathVariable Long id) {
+        requireInOrg(id, orgId);
+        service.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Folder requireInOrg(Long id, Long orgId) {
+        Folder entity = service.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Folder not found with id: " + id));
+        if (entity.getOrganization() == null || !entity.getOrganization().getId().equals(orgId)) {
+            throw new EntityNotFoundException("Folder not found with id: " + id);
+        }
+        return entity;
+    }
+}
+
