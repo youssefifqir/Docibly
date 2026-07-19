@@ -1,5 +1,14 @@
 # Production Profile Configuration
 spring:
+  # Four separate real fixes (Envers, Google OAuth, connection pool/thread/metaspace
+  # tuning, Swagger) changed nothing about the OOM's timing or location — pointing at
+  # the sheer number of beans this codebase registers (controller/service/dao/
+  # converter/dto/criteria/specification x ~20 domains), not any one dependency.
+  # Lazy init defers constructing a bean until something first actually needs it,
+  # instead of building the entire object graph eagerly at boot — cuts how many
+  # objects are simultaneously alive during the exact window this keeps dying in.
+  main:
+    lazy-initialization: true
   datasource:
     url: jdbc:postgresql://db:5432/Docibly_prod
     username: Docibly_user
