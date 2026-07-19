@@ -22,9 +22,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET}
-      SMTP_HOST: ${SMTP_HOST:smtp.resend.com}
+      SMTP_HOST: ${SMTP_HOST:smtp-relay.brevo.com}
       SMTP_PORT: ${SMTP_PORT:587}
-      SMTP_USER: ${SMTP_USER:resend}
+      SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:Docibly}

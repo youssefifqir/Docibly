@@ -31,11 +31,11 @@ public class SearchIndex extends BaseEntity {
     private Long documentId;
     @Column(length = 500)
     private String documentTitle;
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String fullText;
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String ocrText;
-    @Column(length = 500)
+    @Column(length = 1000)
     private String tags;
     @Column(length = 500)
     private String mimeType;

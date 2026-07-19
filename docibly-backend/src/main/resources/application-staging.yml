@@ -33,9 +33,9 @@ spring:
     clean-disabled: true
 
   mail:
-    host: ${SMTP_HOST:smtp.resend.com}
+    host: ${SMTP_HOST:smtp-relay.brevo.com}
     port: ${SMTP_PORT:587}
-    username: ${SMTP_USER:resend}
+    username: ${SMTP_USER}
     password: ${SMTP_PASS}
     properties:
       mail.smtp.auth: true

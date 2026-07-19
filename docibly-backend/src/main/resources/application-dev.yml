@@ -44,10 +44,6 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-  elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
-    connection-timeout: 5s
-    socket-timeout: 60s
 
 app:
   admin:

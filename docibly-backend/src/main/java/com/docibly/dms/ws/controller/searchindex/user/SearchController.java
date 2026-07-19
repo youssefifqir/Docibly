@@ -1,17 +1,21 @@
 package com.docibly.dms.ws.controller.searchindex.user;
 
+import com.docibly.dms.bean.core.document.Document;
 import com.docibly.dms.bean.core.searchindex.DocumentIndex;
+import com.docibly.dms.bean.core.searchindex.SearchIndex;
+import com.docibly.dms.dao.facade.core.document.DocumentDao;
+import com.docibly.dms.dao.facade.core.searchindex.SearchIndexDao;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
-import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/search")
@@ -19,7 +23,8 @@ import java.util.List;
 @PreAuthorize("hasAnyRole('USER')")
 public class SearchController {
 
-    private final ElasticsearchOperations elasticsearchOperations;
+    private final SearchIndexDao searchIndexDao;
+    private final DocumentDao documentDao;
 
     @GetMapping
     public ResponseEntity<SearchResponse> search(
@@ -32,38 +37,38 @@ public class SearchController {
             return ResponseEntity.ok(new SearchResponse(List.of(), 0, page, size));
         }
 
-        NativeQuery nativeQuery = NativeQuery.builder()
-                .withQuery(qb -> qb
-                        .bool(b -> b
-                                .must(m -> m
-                                        .multiMatch(mm -> mm
-                                                .query(query)
-                                                .fields("title^3", "content", "tags")
-                                        )
-                                )
-                                .filter(f -> f
-                                        .term(t -> t
-                                                .field("organizationId")
-                                                .value(orgId)
-                                        )
-                                )
-                        )
-                )
-                .withPageable(PageRequest.of(page, size))
-                .build();
+        Page<SearchIndex> hits = searchIndexDao.searchFullText(orgId, query, PageRequest.of(page, size));
 
-        SearchHits<DocumentIndex> searchHits = elasticsearchOperations.search(nativeQuery, DocumentIndex.class);
+        final List<Long> documentIds = hits.getContent().stream().map(SearchIndex::getDocumentId).toList();
+        final Map<Long, Document> documentsById = documentDao.findAllById(documentIds).stream()
+                .collect(Collectors.toMap(Document::getId, Function.identity()));
 
-        List<DocumentIndex> results = searchHits.getSearchHits().stream()
-                .map(SearchHit::getContent)
+        final List<DocumentIndex> results = hits.getContent().stream()
+                .map(si -> toDocumentIndex(si, documentsById.get(si.getDocumentId())))
                 .toList();
 
         return ResponseEntity.ok(new SearchResponse(
                 results,
-                searchHits.getTotalHits(),
+                hits.getTotalElements(),
                 page,
                 size
         ));
+    }
+
+    private DocumentIndex toDocumentIndex(final SearchIndex si, final Document doc) {
+        return DocumentIndex.builder()
+                .documentId(si.getDocumentId())
+                .title(si.getDocumentTitle())
+                .description(doc != null ? doc.getDescription() : null)
+                .content(si.getFullText())
+                .originalFilename(doc != null ? doc.getOriginalFilename() : null)
+                .mimeType(si.getMimeType())
+                .tags(si.getTags())
+                .organizationId(si.getOrganizationId())
+                .visibility(si.getVisibility())
+                .createdDate(doc != null ? doc.getCreatedDate() : null)
+                .ownerId(si.getOwnerId())
+                .build();
     }
 
     public record SearchResponse(

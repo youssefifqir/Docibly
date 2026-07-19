@@ -1,34 +1,25 @@
 package com.docibly.dms.service.impl.searchindex;
 
 import com.docibly.dms.bean.core.document.Document;
-import com.docibly.dms.bean.core.searchindex.DocumentIndex;
-import com.docibly.dms.dao.facade.core.searchindex.DocumentSearchRepository;
+import com.docibly.dms.bean.core.searchindex.SearchIndex;
+import com.docibly.dms.dao.facade.core.searchindex.SearchIndexDao;
 import com.docibly.dms.service.facade.searchindex.DocumentIndexerService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class DocumentIndexerServiceImpl implements DocumentIndexerService {
 
-    private final DocumentSearchRepository searchRepository;
-
-    @Autowired(required = false)
-    public DocumentIndexerServiceImpl(DocumentSearchRepository searchRepository) {
-        this.searchRepository = searchRepository;
-        if (searchRepository == null) {
-            log.warn("Elasticsearch is not available — document indexing disabled");
-        }
-    }
+    private final SearchIndexDao searchIndexDao;
 
     @Override
     public void indexDocument(Document document) {
-        if (searchRepository == null) {
-            return;
-        }
         try {
             String tagsStr = "";
             if (document.getTags() != null && !document.getTags().isEmpty()) {
@@ -37,48 +28,34 @@ public class DocumentIndexerServiceImpl implements DocumentIndexerService {
                         .collect(Collectors.joining(" "));
             }
 
-            String content = String.join(" ",
-                    nullToEmpty(document.getTitle()),
-                    nullToEmpty(document.getDescription()),
-                    nullToEmpty(document.getOcrText())
-            ).trim();
+            SearchIndex entity = searchIndexDao.findByDocumentId(document.getId())
+                    .orElseGet(() -> SearchIndex.builder().documentId(document.getId()).build());
 
-            DocumentIndex index = DocumentIndex.builder()
-                    .documentId(document.getId())
-                    .title(document.getTitle())
-                    .description(document.getDescription())
-                    .content(content)
-                    .originalFilename(document.getOriginalFilename())
-                    .mimeType(document.getMimeType())
-                    .tags(tagsStr)
-                    .organizationId(document.getOrganization() != null
-                            ? document.getOrganization().getId() : null)
-                    .visibility(document.getVisibility())
-                    .createdDate(document.getCreatedDate())
-                    .ownerId(document.getCreatedBy())
-                    .build();
+            entity.setDocumentTitle(document.getTitle());
+            entity.setFullText(document.getDescription());
+            entity.setOcrText(document.getOcrText());
+            entity.setTags(tagsStr);
+            entity.setMimeType(document.getMimeType());
+            entity.setOrganizationId(document.getOrganization() != null
+                    ? document.getOrganization().getId() : null);
+            entity.setVisibility(document.getVisibility());
+            entity.setOwnerId(document.getCreatedBy());
+            entity.setIndexedAt(LocalDateTime.now());
 
-            searchRepository.save(index);
-            log.debug("Indexed document {} in Elasticsearch", document.getId());
+            searchIndexDao.save(entity);
+            log.debug("Indexed document {} for full-text search", document.getId());
         } catch (Exception e) {
-            log.error("Failed to index document {} in Elasticsearch: {}", document.getId(), e.getMessage());
+            log.error("Failed to index document {} for full-text search: {}", document.getId(), e.getMessage());
         }
     }
 
     @Override
     public void removeDocument(Long documentId) {
-        if (searchRepository == null) {
-            return;
-        }
         try {
-            searchRepository.deleteById(documentId);
-            log.debug("Removed document {} from Elasticsearch", documentId);
+            searchIndexDao.deleteByDocumentId(documentId);
+            log.debug("Removed document {} from search index", documentId);
         } catch (Exception e) {
-            log.error("Failed to remove document {} from Elasticsearch: {}", documentId, e.getMessage());
+            log.error("Failed to remove document {} from search index: {}", documentId, e.getMessage());
         }
-    }
-
-    private String nullToEmpty(String s) {
-        return s == null ? "" : s;
     }
 }

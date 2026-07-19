@@ -20,5 +20,28 @@ public interface SearchIndexDao extends JpaRepository<SearchIndex, Long>, JpaSpe
     SearchIndex findByRef(String ref);
     int deleteByRef(String ref);
 
+    Optional<SearchIndex> findByDocumentId(Long documentId);
+    void deleteByDocumentId(Long documentId);
+
+    // websearch_to_tsquery tolerates arbitrary free-text input (quotes, "-word" exclusion,
+    // "or") without throwing, unlike to_tsquery which demands exact tsquery operator syntax —
+    // matches what users type into a search box. search_vector is a precomputed/indexed
+    // (GIN) generated column, so this doesn't recompute to_tsvector per row per query.
+    @Query(value = """
+            SELECT * FROM app_searchindex
+            WHERE deleted_at IS NULL
+              AND organization_id = :orgId
+              AND search_vector @@ websearch_to_tsquery('english', :query)
+            ORDER BY ts_rank(search_vector, websearch_to_tsquery('english', :query)) DESC
+            """,
+            countQuery = """
+            SELECT count(*) FROM app_searchindex
+            WHERE deleted_at IS NULL
+              AND organization_id = :orgId
+              AND search_vector @@ websearch_to_tsquery('english', :query)
+            """,
+            nativeQuery = true)
+    Page<SearchIndex> searchFullText(@Param("orgId") Long orgId, @Param("query") String query, Pageable pageable);
+
 }
 

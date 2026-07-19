@@ -35,15 +35,21 @@ spring:
     clean-disabled: true
 
   mail:
-    host: ${SMTP_HOST:smtp.resend.com}
+    # Brevo, not Resend: Resend only sends to your own verified account address until
+    # a full domain is verified (DNS records) — a dealbreaker for a demo where anyone
+    # can register. Brevo's free tier (300/day, forever) only needs a single verified
+    # sender *address* (your own email, no domain) and then sends to any recipient.
+    # SMTP_USER is your Brevo account login email; SMTP_PASS is a generated SMTP key
+    # (Transactional > Settings > SMTP relay), not your account password.
+    host: ${SMTP_HOST:smtp-relay.brevo.com}
     port: ${SMTP_PORT:587}
-    username: ${SMTP_USER:resend}
+    username: ${SMTP_USER}
     password: ${SMTP_PASS}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
       mail.smtp.starttls.required: true
-      mail.smtp.ssl.trust: smtp.resend.com
+      mail.smtp.ssl.trust: ${SMTP_HOST:smtp-relay.brevo.com}
 logging:
   level:
     root: WARN

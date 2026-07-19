@@ -1,5 +1,7 @@
 server:
-  port: 8080
+  # Railway (and most PaaS hosts) assign the port at runtime via the PORT env var —
+  # the app must bind to it, not a fixed port.
+  port: ${PORT:8080}
 
 spring:
   profiles:
